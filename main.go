@@ -3,18 +3,46 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
 	"time"
 
 	"github.com/getlantern/systray"
+	"github.com/netsak/time-tracker/service"
+	"github.com/netsak/time-tracker/tray"
 )
 
+var defaultTimer = []string{
+	"Break",
+	"Meeting",
+	"Debugging",
+	"Task",
+	"Other",
+}
+
+func failOnError(err error, msg string) {
+	if err != nil {
+		log.Fatalf(msg, err)
+	}
+}
+
 func main() {
-	fmt.Println("hello")
-	systray.Run(onReady, onExit)
+	log.Println("starting time tracker...")
+
+	svc, err := service.New()
+	failOnError(err, "failed to create timer service")
+	err = svc.AddTimer(defaultTimer...)
+	failOnError(err, "failed to add task timer")
+	tray, err := tray.New(svc)
+	failOnError(err, "failed to create system tray")
+
+	tray.Run()
+	log.Println("bye bye")
 }
 
 func onReady() {
+	log.Println("system tray is ready, setting up menus and actions...")
+
 	systray.SetIcon(getIcon("assets/time-off.png"))
 	systray.SetTitle("I'm alive!")
 	systray.SetTooltip("Look at me, I'm a tooltip!")
@@ -49,8 +77,7 @@ func onReady() {
 }
 
 func onExit() {
-	// Cleaning stuff here.
-	fmt.Println("bye")
+	log.Println("exiting time tracker...")
 }
 
 func getIcon(s string) []byte {
