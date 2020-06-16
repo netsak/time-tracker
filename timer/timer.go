@@ -8,12 +8,13 @@ import (
 
 // Timer for the logging
 type Timer struct {
-	Name          string
-	StartTime     time.Time
-	EndTime       time.Time
-	TotalDuration time.Duration
-	ticker        *time.Ticker
-	IsCurrent     bool
+	Name            string
+	StartTime       time.Time
+	EndTime         time.Time
+	TotalDuration   time.Duration
+	CurrentDuration time.Duration
+	ticker          *time.Ticker
+	ticking         bool
 }
 
 // String returns a string representation of the current state
@@ -28,10 +29,11 @@ func (t *Timer) Start() chan time.Duration {
 	t.EndTime = time.Time{}
 	log.Printf("timer started: %s", t)
 	t.ticker = time.NewTicker(1 * time.Second)
+	t.ticking = true
 	go func() {
 		for now := range t.ticker.C {
-			diff := now.Sub(t.StartTime)
-			ret <- diff
+			t.CurrentDuration = now.Sub(t.StartTime)
+			ret <- t.CurrentDuration
 		}
 	}()
 	return ret
@@ -40,8 +42,14 @@ func (t *Timer) Start() chan time.Duration {
 // Stop the timer
 func (t *Timer) Stop() {
 	t.ticker.Stop()
+	t.ticking = false
 	t.EndTime = time.Now()
 	diff := t.EndTime.Sub(t.StartTime)
 	t.TotalDuration += diff
 	log.Printf("timer stopped: %s diff=%s", t, diff)
+}
+
+// IsActive checks if the timer is currently ticking
+func (t Timer) IsActive() bool {
+	return t.ticking
 }

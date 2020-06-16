@@ -77,7 +77,6 @@ func (svc *timerservice) ListTimer() []string {
 func (svc *timerservice) StartTimer(name string) error {
 	if svc.current != nil {
 		svc.current.Stop()
-		svc.current.IsCurrent = false
 	}
 	t, found := svc.list[name]
 	if !found {
@@ -85,7 +84,6 @@ func (svc *timerservice) StartTimer(name string) error {
 	}
 	ticker := t.Start()
 	svc.current = t
-	svc.current.IsCurrent = true
 	go func() {
 		for {
 			select {
@@ -105,7 +103,6 @@ func (svc *timerservice) StartTimer(name string) error {
 func (svc *timerservice) StopCurrentTimer() {
 	if svc.current != nil {
 		svc.current.Stop()
-		svc.current.IsCurrent = false
 		svc.current = nil
 	}
 	return

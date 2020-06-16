@@ -145,8 +145,8 @@ func (t *systemtray) updateMenu() {
 		timer := t.svc.GetTimer(name)
 		durationStr := formatDuration(timer.TotalDuration)
 		tracking := ""
-		if timer.IsCurrent {
-			tracking = "TRACKING..."
+		if timer.IsActive() {
+			tracking = "...TRACKING..."
 		}
 		titleStr := fmt.Sprintf("%s\t%s\t%s", durationStr, name, tracking)
 		menu.SetTitle(titleStr)
