@@ -13,6 +13,7 @@ type Timer struct {
 	EndTime       time.Time
 	TotalDuration time.Duration
 	ticker        *time.Ticker
+	IsCurrent     bool
 }
 
 // String returns a string representation of the current state

@@ -16,7 +16,7 @@ var defaultTimer = []string{
 	"Break",
 	"Meeting",
 	"Debugging",
-	"Task",
+	"Ticket",
 	"Other",
 }
 

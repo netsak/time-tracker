@@ -16,8 +16,11 @@ type Tray interface {
 }
 
 type systemtray struct {
-	svc   service.Service
-	items map[string]*systray.MenuItem
+	svc           service.Service
+	items         map[string]*systray.MenuItem
+	menuTotalTime *systray.MenuItem
+	menuStop      *systray.MenuItem
+	menuQuit      *systray.MenuItem
 }
 
 // New creates a new system tray for time tracking
@@ -53,8 +56,8 @@ func (t *systemtray) onReady() {
 	systray.SetTooltip("Time Tracker is off")
 	systray.SetTitle("Time Tracker")
 	// total time
-	menuTotalTime := systray.AddMenuItem("0:00:00", "")
-	menuTotalTime.Disable()
+	t.menuTotalTime = systray.AddMenuItem("0:00:00", "")
+	t.menuTotalTime.Disable()
 	systray.AddSeparator()
 	// create dynamic tasks menu
 	for _, name := range t.svc.ListTimer() {
@@ -65,10 +68,10 @@ func (t *systemtray) onReady() {
 	}
 	// add pause and quit
 	systray.AddSeparator()
-	menuStop := systray.AddMenuItem("Stop", "Stop the time tracking")
-	go t.onStop(menuStop)
-	menuQuit := systray.AddMenuItem("Quit", "Enough work done today!")
-	go t.onQuit(menuQuit)
+	t.menuStop = systray.AddMenuItem("Stop", "Stop the time tracking")
+	go t.onStop(t.menuStop)
+	t.menuQuit = systray.AddMenuItem("Quit", "Enough work done today!")
+	go t.onQuit(t.menuQuit)
 }
 
 func (t *systemtray) onClick(name string, item *systray.MenuItem) {
@@ -78,7 +81,7 @@ func (t *systemtray) onClick(name string, item *systray.MenuItem) {
 		case <-item.ClickedCh:
 			log.Printf("timer %s clicked", name)
 			t.setTrayTimeOn(name)
-			t.svc.ActivateTimer(name)
+			t.svc.StartTimer(name)
 		}
 	}
 }
@@ -137,12 +140,21 @@ func (t *systemtray) updateTime(name string, duration time.Duration) {
 }
 
 func (t *systemtray) updateMenu() {
+	var total time.Duration
 	for name, menu := range t.items {
 		timer := t.svc.GetTimer(name)
 		durationStr := formatDuration(timer.TotalDuration)
-		titleStr := fmt.Sprintf("%s\t%s", durationStr, name)
+		tracking := ""
+		if timer.IsCurrent {
+			tracking = "TRACKING..."
+		}
+		titleStr := fmt.Sprintf("%s\t%s\t%s", durationStr, name, tracking)
 		menu.SetTitle(titleStr)
+		total += timer.TotalDuration
 	}
+	durationStr := formatDuration(total)
+	titleStr := fmt.Sprintf("%s\ttotal", durationStr)
+	t.menuTotalTime.SetTitle(titleStr)
 }
 
 func formatDuration(duration time.Duration) string {

@@ -12,7 +12,7 @@ import (
 type Service interface {
 	AddTimer(names ...string) error
 	ListTimer() []string
-	ActivateTimer(name string) error
+	StartTimer(name string) error
 	OnEvent() chan Event
 	StopCurrentTimer()
 	GetTimer(name string) *timer.Timer
@@ -73,11 +73,11 @@ func (svc *timerservice) ListTimer() []string {
 	return ret
 }
 
-// ActivateTimer activates a timer by name
-func (svc *timerservice) ActivateTimer(name string) error {
-	// TODO: rename to StartTimer
+// StartTimer activates a timer by name
+func (svc *timerservice) StartTimer(name string) error {
 	if svc.current != nil {
 		svc.current.Stop()
+		svc.current.IsCurrent = false
 	}
 	t, found := svc.list[name]
 	if !found {
@@ -85,6 +85,7 @@ func (svc *timerservice) ActivateTimer(name string) error {
 	}
 	ticker := t.Start()
 	svc.current = t
+	svc.current.IsCurrent = true
 	go func() {
 		for {
 			select {
@@ -104,6 +105,7 @@ func (svc *timerservice) ActivateTimer(name string) error {
 func (svc *timerservice) StopCurrentTimer() {
 	if svc.current != nil {
 		svc.current.Stop()
+		svc.current.IsCurrent = false
 		svc.current = nil
 	}
 	return
