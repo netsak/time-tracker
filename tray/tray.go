@@ -30,14 +30,13 @@ func New(timerService service.Service) (Tray, error) {
 		items: make(map[string]*systray.MenuItem),
 	}
 	go func() {
+		// TODO: Use ticker here to update the UI and remove the event from the timer service
 		eventChannel := t.svc.OnEvent()
 		for {
 			select {
 			case evt := <-eventChannel:
 				log.Printf("event: %+v", evt)
-				t.updateTime(evt.TimerName, evt.TimerDuration)
 				t.updateMenu()
-				// systray.SetTitle(evt.Duration())
 			}
 		}
 	}()
@@ -94,6 +93,7 @@ func (t *systemtray) onStop(item *systray.MenuItem) {
 			log.Printf("item %s clicked", item)
 			t.svc.StopCurrentTimer()
 			t.setTrayTimeOff()
+			t.updateMenu()
 		}
 	}
 }
@@ -132,25 +132,23 @@ func (t *systemtray) setTrayTimeOn(name string) {
 	systray.SetTooltip(fmt.Sprintf("Tracking time for %s", name))
 }
 
-func (t *systemtray) updateTime(name string, duration time.Duration) {
-	systray.SetIcon(getIcon("assets/time-on.png"))
-	durationStr := formatDuration(duration)
-	systray.SetTitle(durationStr)
-	systray.SetTooltip(fmt.Sprintf("Tracking time for %s", name))
-}
-
 func (t *systemtray) updateMenu() {
 	var total time.Duration
 	for name, menu := range t.items {
 		timer := t.svc.GetTimer(name)
-		durationStr := formatDuration(timer.TotalDuration)
 		tracking := ""
+		duration := timer.TotalDuration
 		if timer.IsActive() {
 			tracking = "...TRACKING..."
+			durationStr := formatDuration(timer.CurrentDuration)
+			systray.SetTitle(durationStr)
+			systray.SetTooltip(fmt.Sprintf("Tracking time for %s", name))
+			duration += timer.CurrentDuration
 		}
+		durationStr := formatDuration(duration)
 		titleStr := fmt.Sprintf("%s\t%s\t%s", durationStr, name, tracking)
 		menu.SetTitle(titleStr)
-		total += timer.TotalDuration
+		total += duration
 	}
 	durationStr := formatDuration(total)
 	titleStr := fmt.Sprintf("%s\ttotal", durationStr)
